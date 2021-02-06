@@ -1,0 +1,4 @@
+name=Basic hardware support
+name[ru]=Базовая поддержка оборудования
+description=Software for installation on physical hardware or a virtual machine. This component is not required for systems installed inside the container, such as LXC.
+description[ru]=Программное обеспечение для установки на физическое оборудование, либо виртуальную машину. Данный компонент не требуется для систем, установленных внутри контейнера, например, LXC.

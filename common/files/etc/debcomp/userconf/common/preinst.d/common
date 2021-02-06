@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+if [ "$UID" = 0 ]; then
+	md5sum=$(md5sum < ~/.bashrc) || exit
+	md5sum=${md5sum%% *}
+	[ ":$md5sum" = :cf277664b1771217d7006acdea006db1 ]
+else
+	cmp -s ~/.bashrc /etc/skel/.bashrc
+fi && {
+	rm -f ~/.bashrc || exit
+}
+
+exit 0

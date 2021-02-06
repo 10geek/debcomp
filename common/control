@@ -1,0 +1,8 @@
+name=Example configuration
+name[ru]=Пример конфигурации
+osrelease=ubuntu 20.04
+
+conf/add_initial_user_to_wheel/type=boolean
+conf/add_initial_user_to_wheel/name=Add the initial user (usually with UID 1000) to the "wheel" group
+conf/add_initial_user_to_wheel/name[ru]=Добавить начального пользователя (обычно с UID 1000) в группу "wheel"
+conf/add_initial_user_to_wheel/default=1

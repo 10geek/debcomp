@@ -1,0 +1,28 @@
+acpi-support manual
+cryptsetup manual
+eject manual
+friendly-recovery manual
+grub-pc manual for_manual(linux-generic)
+hddtemp manual
+irqbalance manual
+linux-generic manual
+lm-sensors manual for(libsensors-config libsensors5)
+lshw manual
+mdadm manual
+ntfs-3g manual
+pciutils manual for_manual(lshw) for(lshw)
+smartmontools manual
+usb-modeswitch manual for(usb-modeswitch-data)
+usbutils manual for_manual(lshw) for(lshw)
+console-setup auto for_manual(cryptsetup linux-generic ntfs-3g friendly-recovery mdadm grub-pc) for(console-setup-linux cryptsetup-initramfs grub-common kbd)
+console-setup-linux auto for_manual(cryptsetup linux-generic ntfs-3g friendly-recovery mdadm grub-pc) for(console-setup)
+cryptsetup-initramfs auto for_manual(cryptsetup) for(cryptsetup)
+dmsetup auto for_manual(cryptsetup eject linux-generic friendly-recovery grub-pc) for(libdevmapper1.02.1)
+gettext-base auto for_manual(friendly-recovery linux-generic grub-pc) for(friendly-recovery)
+initramfs-tools auto for_manual(linux-generic cryptsetup) for(amd64-microcode cryptsetup-initramfs intel-microcode)
+intel-microcode auto for_manual(linux-generic) for(iucode-tool)
+kbd auto for_manual(cryptsetup linux-generic ntfs-3g friendly-recovery mdadm grub-pc) for(console-setup-linux cryptsetup-initramfs util-linux)
+kmod auto for_manual(cryptsetup mdadm linux-generic acpi-support) for(mdadm)
+libglib2.0-data auto for_manual(irqbalance) for(libglib2.0-0)
+liblocale-gettext-perl auto for_manual(linux-generic friendly-recovery mdadm cryptsetup ntfs-3g grub-pc) for(adduser cryptsetup)
+os-prober auto for_manual(linux-generic grub-pc) for(grub-common)

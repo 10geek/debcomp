@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+if [ $CONF_PASSWORD_AUTH -eq 1 ]; then
+	password_auth=yes
+else
+	password_auth=no
+fi
+
+debcomp findreplace '${port}' "$CONF_PORT" "$PREPDIR/etc/ssh/sshd_config" &&
+debcomp findreplace '${permit_root_login}' "$CONF_PERMIT_ROOT_LOGIN" "$PREPDIR/etc/ssh/sshd_config" &&
+debcomp findreplace '${password_auth}' "$password_auth" "$PREPDIR/etc/ssh/sshd_config"

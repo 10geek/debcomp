@@ -1,0 +1,42 @@
+anacron manual for_manual(unattended-upgrades) for(unattended-upgrades)
+apparmor manual
+aptitude manual for(aptitude-common)
+atool manual
+busybox-static manual
+bzip2 manual for_manual(rsync info aptitude htop lsof ubuntu-release-upgrader-core apparmor openssh-client unattended-upgrades less wget gpg screen locales nano vim-tiny xz-utils strace ltrace psmisc mc atool chrony anacron) for(mime-support tar mc)
+chrony manual for_manual(unattended-upgrades) for(systemd)
+finalrd manual
+fzf manual
+gpg manual
+htop manual
+info manual
+less manual
+locales manual for_manual(ubuntu-release-upgrader-core lsof wget apparmor gpg screen nano bzip2 htop rsync vim-tiny aptitude info openssh-client unattended-upgrades xz-utils strace ltrace psmisc less mc atool chrony anacron) for(libc6)
+lsof manual for_manual(htop) for(htop)
+ltrace manual
+manpages manual for_manual(ubuntu-release-upgrader-core lsof wget apparmor gpg screen locales nano bzip2 htop rsync vim-tiny aptitude info openssh-client unattended-upgrades xz-utils strace ltrace psmisc less mc atool chrony anacron) for(libc-bin)
+mc manual
+nano manual
+openssh-client manual for_manual(rsync) for(rsync)
+psmisc manual
+rsync manual
+screen manual
+strace manual for_manual(htop) for(htop)
+ubuntu-release-upgrader-core manual
+unattended-upgrades manual
+vim-tiny manual for(vim-common)
+wget manual
+xz-utils manual for_manual(rsync ubuntu-release-upgrader-core unattended-upgrades info aptitude htop lsof apparmor openssh-client less wget gpg screen locales nano bzip2 vim-tiny strace ltrace psmisc mc atool chrony anacron) for(mime-support tar atool)
+dbus auto for_manual(unattended-upgrades) for(libdbus-1-3 systemd)
+dbus-user-session auto for_manual(unattended-upgrades) for(dbus)
+debconf auto for_manual(info gpg apparmor locales unattended-upgrades rsync aptitude bzip2 ubuntu-release-upgrader-core htop less vim-tiny openssh-client screen lsof ltrace wget strace xz-utils nano psmisc mc atool chrony anacron) for(adduser apparmor ca-certificates libc6 libpam-modules libpam-runtime libpam0g libssl1.1 locales unattended-upgrades iproute2)
+krb5-locales auto for_manual(rsync openssh-client) for(libkrb5-3)
+lbzip2 auto for_manual(atool) for(atool)
+libcgi-pm-perl auto for_manual(aptitude) for(libparse-debianchangelog-perl)
+libglib2.0-data auto for_manual(unattended-upgrades mc) for(libglib2.0-0)
+libparse-debianchangelog-perl auto for_manual(aptitude) for(aptitude)
+p7zip-full auto for_manual(atool) for(atool p7zip)
+perl auto for_manual(rsync unattended-upgrades aptitude htop lsof openssh-client less ubuntu-release-upgrader-core wget apparmor gpg screen locales nano bzip2 vim-tiny info xz-utils strace ltrace psmisc mc atool chrony anacron) for(adduser debconf libparse-debianchangelog-perl lsof perl-base perl-modules-5.30 mc)
+unzip auto for_manual(mc atool) for(mc atool zip)
+xauth auto for_manual(rsync openssh-client) for(openssh-client)
+zip auto for_manual(mc atool) for(mc unzip atool)

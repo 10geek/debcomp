@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+{
+	! systemctl -q is-active ssh.service ||
+	systemctl reload ssh.service
+}

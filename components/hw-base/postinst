@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+update-grub || exit
+
+dpkg-reconfigure console-setup || exit
+
+# Apply keyboard configuration changes for X
+udevadm trigger --subsystem-match=input --action=change || exit

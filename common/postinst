@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+systemctl daemon-reload &&
+debcomp emptydir /var/log/chrony && {
+	! systemctl -q is-active chrony.service ||
+	systemctl restart chrony.service
+}

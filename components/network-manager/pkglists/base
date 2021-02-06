@@ -1,0 +1,4 @@
+network-manager manual
+isc-dhcp-client auto for_manual(network-manager) for(network-manager)
+network-manager-pptp auto for_manual(network-manager) for(network-manager)
+ppp auto for_manual(network-manager) for(network-manager)
