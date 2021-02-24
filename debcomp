@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.0.0 (20/01/2021)
+# Version: 1.0.1 (25/02/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -2869,6 +2869,9 @@ do_install__after_pkgs_install() {
 	}'
 }
 do_install() {
+	unset -v \
+		pkgs_list_install \
+		pkgs_list_manual
 	do_install__sources_list_changed=0
 	do_install__sources_list_exist=0
 
@@ -2901,6 +2904,7 @@ do_install() {
 	do_install__onexit() { :; }
 	onexit() {
 		set 0
+		log_ml 'executing final actions ...' 'ru:выполнение завершающих действий ...'
 		unset -v \
 			do_install__buf \
 			do_install__pkgs_state_md5sum_new \
@@ -2908,9 +2912,13 @@ do_install() {
 			do_install__local_pkgs \
 			do_install__local_pkgs_info \
 			do_install__sources_list_new \
-			pkgs_list_install \
 			pkgs_list_manual
 		do_install__onexit || set 1
+		[ -z "$pkgs_list_install" ] || {
+			{ [ $simulate_install -eq 1 ] || do_install__after_pkgs_install; } &&
+			do_install__reset_pkgs_state &&
+			unset -v pkgs_list_install
+		} || set 1
 		[ $simulate_install -eq 1 ] || {
 			rm -rf "/var/local/lib/$program_name/prep" "/var/local/lib/$program_name/tmp" &&
 			release_lock "/var/local/lib/$program_name/lock"
@@ -3120,14 +3128,6 @@ do_install() {
 	do_install__onexit || { onexit; return 1; }
 
 	if [ -n "$pkgs_list_install" ]; then
-		do_install__onexit() {
-			log_ml 'executing final actions ...' 'ru:выполнение завершающих действий ...'
-			set 0
-			do_install__reset_pkgs_state || set 1
-			do_install__onexit() { :; }
-			return $1
-		}
-
 		log_ml 'applying packages state ...' 'ru:применение состояния пакетов ...'
 		do_install__set_pkgs_state pkgs_list_install || { onexit; return 1; }
 
@@ -3146,14 +3146,7 @@ do_install() {
 		fi
 		unset -v pkgs_list_manual
 
-		[ $simulate_install -eq 0 ] && {
-			do_install__after_pkgs_install || { onexit; return 1; }
-		}
-
-		{
-			do_install__onexit &&
-			do_install__get_pkgs_state_md5sum do_install__pkgs_state_md5sum_old
-		} || { onexit; return 1; }
+		do_install__get_pkgs_state_md5sum do_install__pkgs_state_md5sum_old || { onexit; return 1; }
 	else
 		log_ml 'no installation or removal of any packages required' 'ru:не требуется установка или удаление каких-либо пакетов'
 	fi
@@ -3342,23 +3335,12 @@ do_install() {
 	[ -n "$pkgs_list_install" ] && {
 		do_install__get_pkgs_state_md5sum do_install__pkgs_state_md5sum_new || { onexit; return 1; }
 		[ ":$do_install__pkgs_state_md5sum_new" = ":$do_install__pkgs_state_md5sum_old" ] || {
-			do_install__onexit() {
-				log_ml 'executing final actions ...' 'ru:выполнение завершающих действий ...'
-				set 0
-				do_install__reset_pkgs_state || set 1
-				do_install__onexit() { :; }
-				return $1
-			}
-
 			log_ml 'reapplying package state ...' 'ru:повторное применение состояния пакетов ...'
 			{
 				do_install__set_pkgs_state pkgs_list_install &&
-				apt_get_wrapper dselect-upgrade &&
-				do_install__after_pkgs_install &&
-				do_install__onexit
+				apt_get_wrapper dselect-upgrade
 			} || { onexit; return 1; }
 		}
-		unset -v pkgs_list_install
 	}
 
 	onexit
@@ -3373,7 +3355,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.0.0
+program_version=1.0.1
 is_interactive=0
 simulate_install=0
 overlapping_install=0
