@@ -95,7 +95,8 @@ Key | Description
 `conf/<param>/description[<lang>]` | Description of the configuration parameter. The optional `[<lang>]` part is used to specify a localized variant of the value.
 `conf/<param>/type` | Type of the configuration parameter value. It can take the following values: `string`, `integer`, `float`, `boolean`, `select`.
 `conf/<param>/default` | Default value of the configuration parameter.
-`conf/<param>/regexp` | A regular expression that must match the value of the configuration parameter, otherwise the configuration is considered invalid.
+`conf/<param>/hidden` | If specified and set to 1, the value of the configuration parameter will not be displayed in the user interface and error messages. Applies only to `string`, `integer` and `float` types.
+`conf/<param>/regexp` | A regular expression that must match the value of the configuration parameter, otherwise the configuration is considered invalid. Applies only to `string`, `integer` and `float` types.
 `conf/<param>/min` | If specified, the value of the configuration parameter must not be less than the specified value, otherwise the configuration is considered invalid. Applies only to `integer` and `float` types.
 `conf/<param>/max` | If specified, the value of the configuration parameter must not be greater than the specified value, otherwise the configuration is considered invalid. Applies only to `integer` and `float` types.
 `conf/<param>/options/<value>` | If the value type of the configuration parameter is `select`, it declares one of the possible values (`<value>`) of the configuration parameter. The key does not require a value to be specified.

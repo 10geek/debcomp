@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.0.1 (25/02/2021)
+# Version: 1.1.0 (06/03/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -1363,9 +1363,9 @@ unset -v conf_validate__affected_component
 conf_validate() {
 	unset -v conf_validate__errors
 	conf=$(putv conf | eawk '
-	function conf_err(key, message) {
+	function conf_err(key, message, is_hidden) {
 		if(message == 0 && message == "") conf_errs[++conf_errs[0]] = key
-		else conf_errs[++conf_errs[0]] = ml("invalid configuration value", "ru:некорректное значение конфигурации") " \"" conf[key] "\" " ml("for key", "ru:для ключа") " \"" key "\""
+		else conf_errs[++conf_errs[0]] = ml("invalid configuration value", "ru:некорректное значение конфигурации") " " (is_hidden ? "<" ml("value is hidden", "ru:значение скрыто") ">" : "\"" conf[key] "\"") " " ml("for key", "ru:для ключа") " \"" key "\""
 		if(message != "")
 			conf_errs[conf_errs[0]] = conf_errs[conf_errs[0]] ": " message
 	}
@@ -1397,7 +1397,7 @@ conf_validate() {
 		}
 		return 1
 	}
-	function validate_num(key, is_float, min_value, max_value, default_value,    value, value_new, suppress_err) {
+	function validate_num(key, is_float, min_value, max_value, default_value, is_hidden,    value, value_new, suppress_err) {
 		if(!validate_key_exist(key)) return 0
 		value = conf[key] ""
 		if(is_float) {
@@ -1407,19 +1407,19 @@ conf_validate() {
 		else value_new = int(value + 0) ""
 		if(value_new != "") {
 			if(value != value_new) {
-				conf_err(key, "")
+				conf_err(key, "", is_hidden)
 				suppress_err = 1
 			}
 			if(min_value != "" && value_new + 0 < min_value + 0) {
 				value_new = default_value == "" ? min_value : default_value
-				if(!suppress_err) conf_err(key, ml("value must be greater than or equal to", "ru:значение должно быть больше или равно") " " min_value)
+				if(!suppress_err) conf_err(key, ml("value must be greater than or equal to", "ru:значение должно быть больше или равно") " " min_value, is_hidden)
 			}
 			if(max_value != "" && value_new + 0 > max_value + 0) {
 				value_new = default_value == "" ? max_value : default_value
-				if(!suppress_err) conf_err(key, ml("value must be less than or equal to", "ru:значение должно быть меньше или равно") " " max_value)
+				if(!suppress_err) conf_err(key, ml("value must be less than or equal to", "ru:значение должно быть меньше или равно") " " max_value, is_hidden)
 			}
 		} else {
-			conf_err(key, "")
+			conf_err(key, "", is_hidden)
 			if(default_value != "") value_new = default_value ""
 			else if(min_value != "") value_new = min_value ""
 			else value_new = "0"
@@ -1427,12 +1427,12 @@ conf_validate() {
 		conf[key] = value_new ""
 		return 1
 	}
-	function validate_regexp(key, regexp, default_value,    OLD_RSTART, OLD_RLENGTH) {
+	function validate_regexp(key, regexp, default_value, is_hidden,    OLD_RSTART, OLD_RLENGTH) {
 		if(!validate_key_exist(key)) return 0
 		OLD_RSTART = RSTART; OLD_RLENGTH = RLENGTH
 		match(conf[key], regexp)
 		if(RSTART != 1 || RLENGTH != length(conf[key]))
-			conf_err(key, ml("the value must match regular expression", "ru:значение должно соответствовать регулярному выражению") " \"" regexp "\"")
+			conf_err(key, ml("the value must match regular expression", "ru:значение должно соответствовать регулярному выражению") " \"" regexp "\"", is_hidden)
 		if(RSTART)
 			conf[key] = substr(conf[key], RSTART, RLENGTH)
 		else if(default_value != 0 || default_value != "")
@@ -1528,10 +1528,15 @@ conf_validate() {
 					print_conf_val(option "/description")
 			}
 		}
-		if(conf[key "/type"] != "boolean" && conf[key "/type"] != "select" && (key "/regexp" in conf))
-			print_conf_val(key "/regexp")
+		if(conf[key "/type"] != "boolean" && conf[key "/type"] != "select") {
+			if(key "/hidden" in conf) {
+				validate_boolean(key "/hidden")
+				print_conf_val(key "/hidden")
+			}
+			if(key "/regexp" in conf) print_conf_val(key "/regexp")
+		}
 	}
-	function process_conf_prop(key, key_spec, conf_arr_new,    i) {
+	function process_conf_prop(key, key_spec, conf_arr_new,    i, is_hidden) {
 		if(!(key in conf)) {
 			if(key_spec "/default" in conf)
 				conf[key] = conf[key_spec "/default"]
@@ -1545,15 +1550,16 @@ conf_validate() {
 			else if(conf[key_spec "/type"] == "select")
 				conf[key] = conf[key_spec "/options", 1]
 		}
+		is_hidden = key_spec "/hidden" in conf && conf[key_spec "/hidden"] + 0
 		if(key_spec "/regexp" in conf)
-			validate_regexp(key, conf[key_spec "/regexp"], (key_spec "/default" in conf) ? conf[key_spec "/default"] : "")
+			validate_regexp(key, conf[key_spec "/regexp"], (key_spec "/default" in conf) ? conf[key_spec "/default"] : "", is_hidden)
 		if(conf[key_spec "/type"] == "integer" || conf[key_spec "/type"] == "float") {
 			is_float = conf[key_spec "/type"] == "float"
 			min_value = max_value = default_value = ""
 			if(key_spec "/min" in conf) min_value = conf[key_spec "/min"]
 			if(key_spec "/max" in conf) max_value = conf[key_spec "/max"]
 			if(key_spec "/default" in conf) default_value = conf[key_spec "/default"]
-			validate_num(key, is_float, min_value, max_value, default_value)
+			validate_num(key, is_float, min_value, max_value, default_value, is_hidden)
 		} else if(conf[key_spec "/type"] == "boolean")
 			validate_boolean(key)
 		else if(conf[key_spec "/type"] == "select") {
@@ -3355,7 +3361,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.0.1
+program_version=1.1.0
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -3638,13 +3644,17 @@ signal_handler__register
 							conf[prop_spec_key "/type"] == "string" || \
 							conf[prop_spec_key "/type"] == "integer" || \
 							conf[prop_spec_key "/type"] == "float" \
-						)
-							ui_elem = "i"
+						) {
+							if(prop_spec_key "/hidden" in conf && conf[prop_spec_key "/hidden"] + 0)
+								ui_elem = "p"
+							else
+								ui_elem = "i"
+						}
 						else if(conf[prop_spec_key "/type"] == "boolean")
 							ui_elem = "c"
 						if(add_indent == 2) print "t"
 						add_indent = 1
-						print ui_elem var_name ":" conf[prop_spec_key "/name"] (ui_elem == "i" ? ":" : "")
+						print ui_elem var_name ":" conf[prop_spec_key "/name"] (ui_elem == "i" || ui_elem == "p" ? ":" : "")
 					}
 					if(prop_spec_key "/description" in conf)
 						print "d" conf[prop_spec_key "/description"]
