@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.1.0 (06/03/2021)
+# Version: 1.2.0 (08/03/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -3361,7 +3361,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.1.0
+program_version=1.2.0
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -5197,18 +5197,24 @@ findreplace)
 
 		Options:
 		  -i          Case-insensitive search
+		  -v          Treat value of the <replacement> argument as name of the
+		              environment variable containing the string to replace the
+		              search string with. Name of the environment variable must
+		              match the regular expression ^[A-Z_][A-Z0-9_]*\$.
 		  -h, --help  Display this help and exit
 		EOF
 	}
 
-	IS_CASE_INSENSITIVE=0
+	is_case_insensitive=0
+	replacement_is_var_name=0
 
 	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
 		usage; exit 0
 	else
 		[ -z "$SCRIPT_NAME" ] && err_usage
-		while getopts i OPT; do case $OPT in
-			i) IS_CASE_INSENSITIVE=1;;
+		while getopts iv OPT; do case $OPT in
+			i) is_case_insensitive=1;;
+			v) replacement_is_var_name=1;;
 			?) exit 1;;
 		esac; done
 	fi
@@ -5216,8 +5222,17 @@ findreplace)
 	OPTIND=1
 	[ $# -ge 3 ] || err_usage 'invalid number of arguments'
 
+	if [ $replacement_is_var_name -eq 1 ]; then
+		LC_ALL=C awk -- 'BEGIN { if(ARGV[1] !~ /^[A-Z_][A-Z0-9_]*$/) exit 1 }' "$2" ||
+			err 1 "findreplace: $(eawk 'BEGIN {
+				print ml("incorrect environment variable name", "ru:некорректное имя переменной окружения") ": `" ARGV[1] "\47"
+			}' "$2")"
+		eval "REPLACEMENT=\$$2; unset -v $2"
+	else
+		REPLACEMENT=$2
+	fi
 	PATTERN=$1
-	REPLACEMENT=$2
+	IS_CASE_INSENSITIVE=$is_case_insensitive
 	export \
 		PATTERN \
 		REPLACEMENT \
