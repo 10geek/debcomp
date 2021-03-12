@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.2.3 (12/03/2021)
+# Version: 1.2.4 (12/03/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -3363,7 +3363,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.2.3
+program_version=1.2.4
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -3441,6 +3441,8 @@ lang=$(locale | LC_ALL=C awk '{
 	print $0
 	exit
 }')
+
+umask 0022 || exit 1
 
 unset -v \
 	DEBCONF_DB_FALLBACK \
