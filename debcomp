@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.2.2 (11/03/2021)
+# Version: 1.2.3 (12/03/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -980,7 +980,7 @@ wait_user() {
 	[ ":$1" != :-c ] || [ ":$wait_user__input" = :yes ]
 }
 mkvardir() {
-	mkdir -pm 700 "/var/local/lib/$program_name" && {
+	mkdir -pm a-s,u=rwx,go= "/var/local/lib/$program_name" && {
 		[ -z "$1" ] ||
 		mkdir -p "/var/local/lib/$program_name/$1"
 	}
@@ -3363,7 +3363,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.2.2
+program_version=1.2.3
 is_interactive=0
 simulate_install=0
 overlapping_install=0
