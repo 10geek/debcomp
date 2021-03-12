@@ -2701,9 +2701,9 @@ reset_perms_owners() {
 	normalize_path "$1" reset_perms_owners__path &&
 	find "$reset_perms_owners__path" ! -type l -exec sh -c '
 		if [ -d "$0" ]; then
-			chmod 0755 "$0"
+			chmod a-st,u=rwx,go=rx "$0"
 		else
-			chmod 0644 "$0"
+			chmod a-st,u=rw,go=r "$0"
 		fi || kill -INT "$PPID"
 	' {} \; && {
 		[ "$(id -u)" != 0 ] || chown -R root:root "$reset_perms_owners__path"
