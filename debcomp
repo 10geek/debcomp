@@ -1859,6 +1859,33 @@ get_sel_components_dirs() {
 		}
 	}' "$1" "$2"
 }
+get_local_pkgs() {
+	{
+		puts common
+		get_sel_components_dirs 1
+	} | while gets dir; do
+		dir=$dir/pkgs
+		[ -d "$confdir/$dir" ] || continue
+		cd "$confdir/$dir" || exit
+		buf=$(find . -path './*' -prune) || exit
+		putv buf | LC_ALL=C awk -- 'BEGIN { ARGC = 1 } {
+			print ARGV[1] "/" substr($0, index($0, "/") + 1)
+		}' "$dir" || exit
+	done
+}
+get_local_pkgs_info() {
+	eval "[ -z \"\$$1\" ]" ||
+	putv "$1" | while gets pkg_path; do
+		pkg_path=$confdir/$pkg_path
+		if [ -f "$pkg_path" ]; then
+			buf=$(dpkg-deb -f "$pkg_path")
+		else
+			buf=$(cat "$pkg_path/DEBIAN/control")
+		fi || exit
+		putv buf | sed -n '/^$/!p'
+		puts
+	done
+}
 pkgs_list_load() {
 	pkgs_list_install=$({
 		! [ -e "$confdir/common/unmanaged-packages" ]
@@ -2943,20 +2970,7 @@ do_install() {
 		rm -rf "/var/local/lib/$program_name/tmp"
 	} || { onexit; return 1; }
 
-	do_install__local_pkgs=$(
-		{
-			puts common
-			get_sel_components_dirs 1
-		} | while gets dir; do
-			dir=$dir/pkgs
-			[ -d "$confdir/$dir" ] || continue
-			cd "$confdir/$dir" || exit
-			buf=$(find . -path './*' -prune) || exit
-			putv buf | LC_ALL=C awk -- 'BEGIN { ARGC = 1 } {
-				print ARGV[1] "/" substr($0, index($0, "/") + 1)
-			}' "$dir" || exit
-		done
-	) || { onexit; return 1; }
+	do_install__local_pkgs=$(get_local_pkgs) || { onexit; return 1; }
 
 	[ $simulate_install -eq 0 ] && [ -n "$do_install__local_pkgs" ] && {
 		log_ml 'installing local packages ...' 'ru:установка локальных пакетов ...'
@@ -3029,19 +3043,7 @@ do_install() {
 
 	log_ml 'building a list of installing packages ...' 'ru:построение списка устанавливаемых пакетов ...'
 	[ $simulate_install -eq 1 ] && {
-		do_install__local_pkgs_info=$(
-			[ -z "$do_install__local_pkgs" ] ||
-			putv do_install__local_pkgs | while gets pkg_path; do
-				pkg_path=$confdir/$pkg_path
-				if [ -f "$pkg_path" ]; then
-					buf=$(dpkg-deb -f "$pkg_path")
-				else
-					buf=$(cat "$pkg_path/DEBIAN/control")
-				fi || exit
-				putv buf | sed -n '/^$/!p'
-				puts
-			done
-		) || { onexit; return 1; }
+		do_install__local_pkgs_info=$(get_local_pkgs_info do_install__local_pkgs) || { onexit; return 1; }
 	}
 	unset -v do_install__local_pkgs
 
@@ -4273,10 +4275,12 @@ verify-pkglists)
 
 	{
 		check_is_conf_dir &&
-		checkutil apt-cache apt-get dpkg
+		checkutil apt-cache apt-get dpkg dpkg-deb &&
+		get_dpkg_arch &&
+		local_pkgs=$(get_local_pkgs) &&
+		local_pkgs_info=$(get_local_pkgs_info local_pkgs) &&
+		pkgs_list_load all local_pkgs_info 1 "$autofix_errors"
 	} || exit 1
-
-	{ get_dpkg_arch && pkgs_list_load all '' 1 "$autofix_errors"; } || exit 1
 	;;
 get-config)
 	shift
