@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.2.5 (14/03/2021)
+# Version: 1.2.6 (15/03/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -1018,8 +1018,8 @@ get_lock() {
 		done
 		exit 1
 	) && return
-	[ ":$3" = :1 ] && return 1
-	err 1 "get_lock: unable to get lock \`$1'"
+	err "get_lock: unable to get lock \`$1'"
+	[ ":$3" = :1 ] || exit 1
 }
 release_lock() {
 	{ [ -n "$1" ] && [ -f "$1/pid" ]; } || return 0
@@ -3363,7 +3363,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.2.5
+program_version=1.2.6
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -4151,16 +4151,22 @@ userconf)
 		  BACKUP_PATH  Path to the backup directory.
 
 		Example of the /etc/profile.d/${program_name}-userconf.sh file:
-		[ -e ~/.$program_name/userconf/installed/common ] || $program_name userconf common
+		[ -e ~/.$program_name/userconf/installed/common ] || $program_name userconf -f common
 
 		Options:
+		  -f          Exit silently with code 0 if the configuration has already
+		              been applied previously.
 		  -h, --help  Display this help and exit
 		EOF
 	}
 
+	conf_started=0
+	ignore_applied_conf=0
+
 	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
 		usage; exit 0
-	else while getopts '' OPT; do case $OPT in
+	else while getopts f OPT; do case $OPT in
+		f) ignore_applied_conf=1;;
 		?) exit 1;;
 	esac; done; fi
 	shift $((OPTIND - 1))
@@ -4191,20 +4197,12 @@ userconf)
 
 	[ -d "$CONF_PATH" ] ||
 		err 1 "$(eawk 'BEGIN {
-			print ml("directory", "ru:каталог") " `" ARGV[1] "\47 " ml("does not exist", "ru:не существует")
-		}' "$CONF_PATH")"
-	[ -e ~/".$program_name/userconf/installed/$CONF_NAME" ] &&
-		err 1 "$(eawk 'BEGIN {
-			print ml("configuration", "ru:конфигурация") " `" ARGV[1] "\47 " ml("was applied previously", "ru:была применена ранее")
+			print ml("user configuration", "ru:пользовательская конфигурация") " `" ARGV[1] "\47 " ml("does not exist", "ru:не существует")
 		}' "$CONF_NAME")"
-	log "$(eawk 'BEGIN {
-		print ml("applying user configuration", "ru:применение пользовательской конфигурации") " `" ARGV[1] "\47 ..."
-	}' "$CONF_NAME")"
-	mkdir -p ~/".$program_name/userconf" || exit 1
 
 	onexit() {
 		set 0
-		[ -d "$BACKUP_PATH" ] && {
+		[ $conf_started -eq 1 ] && [ -d "$BACKUP_PATH" ] && {
 			if isdirempty "$BACKUP_PATH"; then
 				rmdir "$BACKUP_PATH" || set 1
 			else
@@ -4214,7 +4212,7 @@ userconf)
 			fi
 		}
 		release_lock ~/".$program_name/lock" || set 1
-		{ [ $EXIT_CODE -eq 0 ] && [ $1 -eq 0 ]; } ||
+		[ $conf_started -eq 0 ] || { [ $EXIT_CODE -eq 0 ] && [ $1 -eq 0 ]; } ||
 			err "$(eawk 'BEGIN {
 				print ml("applying user configuration", "ru:применение пользовательской конфигурации") " `" ARGV[1] "\47 " ml("failed", "ru:завершилось с ошибкой")
 			}' "$CONF_NAME")"
@@ -4222,7 +4220,15 @@ userconf)
 		return $1
 	}
 
-	get_lock ~/".$program_name/lock" 1 1 || exit 1
+	mkdir -p ~/".$program_name" || exit 1
+	get_lock ~/".$program_name/lock"
+
+	[ -e ~/".$program_name/userconf/installed/$CONF_NAME" ] && {
+		[ $ignore_applied_conf -eq 1 ] && exit 0
+		err 1 "$(eawk 'BEGIN {
+			print ml("configuration", "ru:конфигурация") " `" ARGV[1] "\47 " ml("was applied previously", "ru:была применена ранее")
+		}' "$CONF_NAME")"
+	}
 
 	{ [ -h "$BACKUP_PATH" ] || [ -e "$BACKUP_PATH" ]; } && {
 		i=1; while [ -h "$BACKUP_PATH.$i" ] || [ -e "$BACKUP_PATH.$i" ]; do
@@ -4230,6 +4236,12 @@ userconf)
 		done
 		mv -f "$BACKUP_PATH" "$BACKUP_PATH.$i" || exit 1
 	}
+
+	conf_started=1
+	log "$(eawk 'BEGIN {
+		print ml("applying user configuration", "ru:применение пользовательской конфигурации") " `" ARGV[1] "\47 ..."
+	}' "$CONF_NAME")"
+
 	mkdir -p "$BACKUP_PATH" || exit 1
 
 	! [ -d "$CONF_PATH/preinst.d" ] ||

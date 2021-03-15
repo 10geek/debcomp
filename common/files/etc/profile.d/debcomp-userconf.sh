@@ -1,1 +1,1 @@
-[ -e ~/.debcomp/userconf/installed/common ] || debcomp userconf common
+[ -e ~/.debcomp/userconf/installed/common ] || debcomp userconf -f common
