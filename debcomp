@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.2.6 (15/03/2021)
+# Version: 1.2.7 (08/04/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -3363,7 +3363,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.2.6
+program_version=1.2.7
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -3491,13 +3491,13 @@ signal_handler__register
 				for(i1 = 1; i1 <= conf["/prop/common/conf", 0]; i1++)
 					print "script_ui_var_common_" i1 "=" shell_escape(conf["/conf/common/" conf["/prop/common/conf", i1]])
 			}
-			if("/prop/components-install-order" in conf) {
-				for(i1 = 1; i1 <= conf["/prop/components-install-order", 0]; i1++) {
-					component_conf = "/prop/components/" conf["/prop/components-install-order", i1] "/conf"
-					print "script_ui_var_component_" i1 "=" shell_escape(conf["/conf/components/" conf["/prop/components-install-order", i1]])
+			if("/prop/components" in conf) {
+				for(i1 = 1; i1 <= conf["/prop/components", 0]; i1++) {
+					component_conf = "/prop/components/" conf["/prop/components", i1] "/conf"
+					print "script_ui_var_component_" i1 "=" shell_escape(conf["/conf/components/" conf["/prop/components", i1]])
 					if(!(component_conf in conf)) { continue }
 					for(i2 = 1; i2 <= conf[component_conf, 0]; i2++)
-						print "script_ui_var_component_" i1 "_" i2 "=" shell_escape(conf["/conf/components/" conf["/prop/components-install-order", i1] "/" conf[component_conf, i2]])
+						print "script_ui_var_component_" i1 "_" i2 "=" shell_escape(conf["/conf/components/" conf["/prop/components", i1] "/" conf[component_conf, i2]])
 				}
 			}
 		}')"
@@ -3589,7 +3589,7 @@ signal_handler__register
 					if(splitted[1] == "common")
 						result_arr["key"] = "/conf/common/" conf["/prop/common/conf", splitted[2]]
 					else if(splitted[1] == "component") {
-						result_arr["component"] = conf["/prop/components-install-order", splitted[2]]
+						result_arr["component"] = conf["/prop/components", splitted[2]]
 						if(splitted[3] == "")
 							result_arr["key"] = "/conf/components/" result_arr["component"]
 						else
@@ -3704,16 +3704,16 @@ signal_handler__register
 						if("/prop/components" in conf) {
 							print "t"
 							print "h" ml("Selected components", "ru:Выбранные компоненты")
-							for(i1 = 1; i1 <= conf["/prop/components-install-order", 0]; i1++) {
-								component = "/prop/components/" conf["/prop/components-install-order", i1]
+							for(i1 = 1; i1 <= conf["/prop/components", 0]; i1++) {
+								component = "/prop/components/" conf["/prop/components", i1]
 								print "cscript_ui_var_component_" i1 ":" conf[component "/name"]
 								if(component "/description" in conf)
 									print "d" conf[component "/description"]
 							}
-							for(i1 = 1; i1 <= conf["/prop/components-install-order", 0]; i1++) {
-								component = "/prop/components/" conf["/prop/components-install-order", i1]
+							for(i1 = 1; i1 <= conf["/prop/components", 0]; i1++) {
+								component = "/prop/components/" conf["/prop/components", i1]
 								component_conf = component "/conf"
-								if(!(component_conf in conf && conf["/conf/components/" conf["/prop/components-install-order", i1]] + 0)) { continue }
+								if(!(component_conf in conf && conf["/conf/components/" conf["/prop/components", i1]] + 0)) { continue }
 								print "t"
 								print "h" ml("Component configuration", "ru:Конфигурация компонента") " \"" conf[component "/name"] "\""
 								if(component "/description" in conf)
