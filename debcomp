@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.2.7 (08/04/2021)
+# Version: 1.3.0 (11/04/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -3363,7 +3363,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.2.7
+program_version=1.3.0
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -4870,6 +4870,7 @@ remove|emptydir)
 			creating a backup if called from the "preinst" or "prerm" script.
 
 			Options:
+			  -n          Do not create a backup
 			  -h, --help  Display this help and exit
 			EOF
 		}
@@ -4882,16 +4883,20 @@ remove|emptydir)
 			called from the "preinst" or "prerm" script.
 
 			Options:
+			  -n          Do not create a backup
 			  -h, --help  Display this help and exit
 			EOF
 		}
 	fi
 
+	unset -v make_backup
+
 	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
 		usage; exit 0
 	else
 		[ -z "$SCRIPT_NAME" ] && err_usage
-		while getopts '' OPT; do case $OPT in
+		while getopts n OPT; do case $OPT in
+			n) make_backup=0;;
 			?) exit 1;;
 		esac; done
 	fi
@@ -4925,24 +4930,24 @@ remove|emptydir)
 		isdirempty . && exit 0
 	}
 
-	make_backup=0
 	is_userconf=0
 	case $SCRIPT_NAME in
 	preinst|prerm)
 		case $target_path in
 		"/var/local/lib/$program_name/"*) ;;
-		*) make_backup=1
+		*) [ -z "$make_backup" ] && make_backup=1
 		esac
 		;;
 	*)
 		[ -n "$USERCONF" ] && [ ":$USERCONF" != :0 ] && {
 			is_userconf=1
 			case $target_path in
-			"$HOME/"*) make_backup=1;;
+			"$HOME/"*) [ -z "$make_backup" ] && make_backup=1;;
 			esac
 		}
 		;;
 	esac
+	[ -z "$make_backup" ] && make_backup=0
 
 	trap '' $SIGNALS
 	[ $make_backup -eq 1 ] && {
