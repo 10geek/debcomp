@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.3.0 (11/04/2021)
+# Version: 1.4.0 (24/04/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -3363,7 +3363,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.3.0
+program_version=1.4.0
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -3381,6 +3381,8 @@ usage() {
 	  verify-pkglists
 	  get-config
 	  analyze-deps
+	  fs-unify
+	  fs-diversify
 
 	Commands for using in scripts:
 	  log
@@ -4755,6 +4757,112 @@ analyze-deps)
 	}
 	eval "$command"
 	exit $exit_code
+	;;
+fs-unify)
+	shift
+
+	usage() {
+		cat <<- EOF
+		Usage: $program_name [<options>] ... fs-unify <path> ...
+
+		Creates placeholders in empty directories and replaces symbolic links to
+		files with the ".symlink" extension.
+
+		Options:
+		  -h, --help  Display this help and exit
+		EOF
+	}
+
+	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
+		usage; exit 0
+	else while getopts '' OPT; do case $OPT in
+		?) exit 1;;
+	esac; done; fi
+	shift $((OPTIND - 1))
+	OPTIND=1
+	[ $# -eq 0 ] && err_usage 'invalid number of arguments'
+
+	checkutil readlink || exit 1
+
+	eval "set -- $(
+		for arg in "$@"; do
+			[ -z "$arg" ] && { puts '; false'; break; }
+			normalize_path "$arg" -
+		done | tr \\n ' '
+	)" || err_ml 1 'fs-unify: argument <path> can'\''t be an empty string' 'ru:fs-unify: аргумент <path> не может быть пустой строкой'
+
+	{
+		find "$@" -name .placeholder -o -name '*.symlink' 2>&1
+		puts $?
+	} | eawk '{ l[NR] = $0 } END {
+		if(NR > 1 && !l[NR])
+			err("fs-unify: " ml("the operation was canceled because specified paths contain files with invalid names", "ru:операция отменена, так как указанные пути содержат файлы с недопустимыми именами") ":")
+		for(i = 1; i < NR; i++) err("fs-unify: " l[i])
+		if(NR > 1 || l[NR]) exit 1
+	}' >&2 || exit 1
+
+	find "$@" \( -type d -o -type l \) -exec sh -c '
+		interrupt() { kill -INT "$PPID"; exit; }
+		if [ -h "$0" ]; then
+			readlink "$0" > "$0.symlink" &&
+			rm -f "$0"
+		else
+			buf=$(
+				cd "$0" 2>&3 &&
+				find . -path '\''./*'\'' -prune -exec sh -c '\''echo .; kill -INT "$PPID"'\'' \; 2>&3
+			) 3>&2 2>/dev/null
+			case $? in
+			0) [ -n "$buf" ] && interrupt;;
+			*) [ -n "$buf" ] && exit; interrupt;;
+			esac
+			: > "$0/.placeholder"
+		fi || interrupt
+	' {} \; || exit 1
+	;;
+fs-diversify)
+	shift
+
+	usage() {
+		cat <<- EOF
+		Usage: $program_name [<options>] ... fs-diversify <path> ...
+
+		Removes placeholders from empty directories and replaces files with the
+		".symlink" extension to symbolic links.
+
+		Options:
+		  -h, --help  Display this help and exit
+		EOF
+	}
+
+	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
+		usage; exit 0
+	else while getopts '' OPT; do case $OPT in
+		?) exit 1;;
+	esac; done; fi
+	shift $((OPTIND - 1))
+	OPTIND=1
+	[ $# -eq 0 ] && err_usage 'invalid number of arguments'
+
+	eval "set -- $(
+		for arg in "$@"; do
+			[ -z "$arg" ] && { puts '; false'; break; }
+			normalize_path "$arg" -
+		done | tr \\n ' '
+	)" || err_ml 1 'fs-diversify: argument <path> can'\''t be an empty string' 'ru:fs-diversify: аргумент <path> не может быть пустой строкой'
+
+	find "$@" -type f \( -name .placeholder -o -name '*.symlink' \) -exec sh -c '
+		interrupt() { kill -INT "$PPID"; exit; }
+		[ ":${0##*/}" = :.placeholder ] || {
+			dest=$(cat "$0" && echo .) &&
+			eval "dest=$(LC_ALL=C awk -- '\''BEGIN {
+				if(!sub(/\n\.$/, "", ARGV[1])) exit 1
+				gsub(/\47/, "\47\134\47\47", ARGV[1])
+				print "\47" ARGV[1] "\47"
+			}'\'' "$dest" || echo interrupt)" &&
+			ln -s -- "$dest" "${0%.*}"
+		} || interrupt
+		rm -f "$0" || interrupt
+	' {} \; || exit 1
 	;;
 log)
 	shift
