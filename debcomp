@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.4.0 (24/04/2021)
+# Version: 1.5.0 (27/04/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -2710,19 +2710,23 @@ reset_perms_owners() {
 	}
 }
 run_parts() (
+	run_parts() {
+		lc_all_old=$LC_ALL; LC_ALL=C
+		for file in "$1"/*; do
+			LC_ALL=$lc_all_old
+			if [ -d "$file" ]; then
+				run_parts "$file"
+			elif [ -f "$file" ] && [ -x "$file" ]; then
+				"$file" < /dev/null || exit_code=1
+			fi
+		done
+	}
 	[ -d "$1" ] || err 2 "$(eawk 'BEGIN {
 		print ml("directory", "ru:каталог") " `" ARGV[1] "\47 " ml("does not exist", "ru:не существует")
 	}' "$1")"
-	old_pwd=$PWD
-	cd -- "$1" || exit 2
-	old_pwd=$old_pwd find -L . -path './*' -prune -type f -exec sh -c '
-		interrupt() { kill -INT "$PPID"; exit; }
-		'"$2"'
-		script_path=$PWD/${0#./}
-		cd "$old_pwd" || interrupt
-		unset -v old_pwd
-		! [ -x "$script_path" ] || "$script_path" < /dev/null || interrupt
-	' {} \; || exit 1
+	exit_code=0
+	run_parts "$1"
+	exit $exit_code
 )
 apt_get_wrapper() {
 	apt-get -y \
@@ -3363,7 +3367,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.4.0
+program_version=1.5.0
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -5292,9 +5296,9 @@ run-parts)
 		cat <<- EOF
 		Usage: $program_name [<options>] ... run-parts <directory>
 
-		Executes all executable files from the specified directory. The exit
-		code is 1 if one of the scripts completed with a non-zero exit code,
-		and 2 if the specified directory does not exist or cannot be accessed.
+		Executes all executable files from the specified directory in alphabetical
+		order. The exit code is 1 if one of the scripts completed with a non-zero
+		exit code, and 2 if the specified directory does not exist.
 
 		Options:
 		  -h, --help  Display this help and exit
