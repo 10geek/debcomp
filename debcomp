@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.5.0 (27/04/2021)
+# Version: 1.5.1 (09/05/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -2717,6 +2717,11 @@ run_parts() (
 			if [ -d "$file" ]; then
 				run_parts "$file"
 			elif [ -f "$file" ] && [ -x "$file" ]; then
+				eval " $before_cmd" || {
+					err "command \`$before_cmd' exited with code $?"
+					exit_code=1
+					continue
+				}
 				"$file" < /dev/null || {
 					err "\`$file' exited with code $?"
 					exit_code=1
@@ -2728,6 +2733,7 @@ run_parts() (
 		print ml("directory", "ru:каталог") " `" ARGV[1] "\47 " ml("does not exist", "ru:не существует")
 	}' "$1")"
 	exit_code=0
+	before_cmd=$2
 	run_parts "$1"
 	exit $exit_code
 )
@@ -3370,7 +3376,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.5.0
+program_version=1.5.1
 is_interactive=0
 simulate_install=0
 overlapping_install=0
