@@ -2717,7 +2717,10 @@ run_parts() (
 			if [ -d "$file" ]; then
 				run_parts "$file"
 			elif [ -f "$file" ] && [ -x "$file" ]; then
-				"$file" < /dev/null || exit_code=1
+				"$file" < /dev/null || {
+					err "\`$file' exited with code $?"
+					exit_code=1
+				}
 			fi
 		done
 	}
