@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.5.1 (09/05/2021)
+# Version: 1.5.2 (08/06/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -3383,7 +3383,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.5.1
+program_version=1.5.2
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -3421,14 +3421,15 @@ usage() {
 	EOF
 }
 
-if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-	usage; exit 0
-elif [ ":$1" = :--version ] || [ ":$1" = :-v ]; then
-	putv program_version
-	exit 0
-else while getopts '' OPT; do case $OPT in
-	?) exit 1;;
-esac; done; fi
+case $1 in
+--help|-h) usage; exit 0;;
+--version|-v) putv program_version; exit 0;;
+*)
+	while getopts '' OPT; do case $OPT in
+		?) exit 1;;
+	esac; done
+	;;
+esac
 shift $((OPTIND - 1))
 OPTIND=1
 
@@ -3946,14 +3947,17 @@ install)
 
 	no_confirm=0
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else while getopts ys OPT; do case $OPT in
-		y) no_confirm=1;;
-		o) overlapping_install=1;;
-		s) simulate_install=1;;
-		?) exit 1;;
-	esac; done; fi
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
+		while getopts ys OPT; do case $OPT in
+			y) no_confirm=1;;
+			o) overlapping_install=1;;
+			s) simulate_install=1;;
+			?) exit 1;;
+		esac; done
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 0 ] || err_usage 'invalid number of arguments'
@@ -3998,13 +4002,16 @@ rollback)
 	no_confirm=0
 	no_lock=0
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else while getopts yL OPT; do case $OPT in
-		y) no_confirm=1;;
-		L) no_lock=1;;
-		?) exit 1;;
-	esac; done; fi
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
+		while getopts yL OPT; do case $OPT in
+			y) no_confirm=1;;
+			L) no_lock=1;;
+			?) exit 1;;
+		esac; done
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 0 ] || err_usage 'invalid number of arguments'
@@ -4185,12 +4192,15 @@ userconf)
 	conf_started=0
 	ignore_applied_conf=0
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else while getopts f OPT; do case $OPT in
-		f) ignore_applied_conf=1;;
-		?) exit 1;;
-	esac; done; fi
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
+		while getopts f OPT; do case $OPT in
+			f) ignore_applied_conf=1;;
+			?) exit 1;;
+		esac; done
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 1 ] || err_usage 'invalid number of arguments'
@@ -4299,12 +4309,15 @@ verify-pkglists)
 
 	autofix_errors=0
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else while getopts f OPT; do case $OPT in
-		f) autofix_errors=1;;
-		?) exit 1;;
-	esac; done; fi
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
+		while getopts f OPT; do case $OPT in
+			f) autofix_errors=1;;
+			?) exit 1;;
+		esac; done
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 0 ] || err_usage 'invalid number of arguments'
@@ -4332,11 +4345,14 @@ get-config)
 		EOF
 	}
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else while getopts '' OPT; do case $OPT in
-		?) exit 1;;
-	esac; done; fi
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
+		while getopts '' OPT; do case $OPT in
+			?) exit 1;;
+		esac; done
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 0 ] || err_usage 'invalid number of arguments'
@@ -4399,26 +4415,29 @@ analyze-deps)
 	use_pager=0
 	stdout_is_tty=0
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else while getopts re:atdp OPT; do case $OPT in
-		r) read_excluded_packages=1;;
-		e) excluded_packages=$OPTARG;;
-		a) output_all_deps=1;;
-		t)
-			tree_view=1
-			[ -t 1 ] && stdout_is_tty=1
-			;;
-		d) output_pkgs_descrs=1;;
-		p)
-			[ -t 1 ] && {
-				checkutil less || exit 1
-				use_pager=1
-				stdout_is_tty=1
-			}
-			;;
-		?) exit 1;;
-	esac; done; fi
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
+		while getopts re:atdp OPT; do case $OPT in
+			r) read_excluded_packages=1;;
+			e) excluded_packages=$OPTARG;;
+			a) output_all_deps=1;;
+			t)
+				tree_view=1
+				[ -t 1 ] && stdout_is_tty=1
+				;;
+			d) output_pkgs_descrs=1;;
+			p)
+				[ -t 1 ] && {
+					checkutil less || exit 1
+					use_pager=1
+					stdout_is_tty=1
+				}
+				;;
+			?) exit 1;;
+		esac; done
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 
@@ -4793,11 +4812,14 @@ fs-unify)
 		EOF
 	}
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else while getopts '' OPT; do case $OPT in
-		?) exit 1;;
-	esac; done; fi
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
+		while getopts '' OPT; do case $OPT in
+			?) exit 1;;
+		esac; done
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 0 ] && err_usage 'invalid number of arguments'
@@ -4854,11 +4876,14 @@ fs-diversify)
 		EOF
 	}
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else while getopts '' OPT; do case $OPT in
-		?) exit 1;;
-	esac; done; fi
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
+		while getopts '' OPT; do case $OPT in
+			?) exit 1;;
+		esac; done
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 0 ] && err_usage 'invalid number of arguments'
@@ -4905,15 +4930,16 @@ log)
 
 	is_err_message=0
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
 		[ -z "$SCRIPT_NAME" ] && err_usage
 		while getopts e OPT; do case $OPT in
 			e) is_err_message=1;;
 			?) exit 1;;
 		esac; done
-	fi
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 1 ] || [ $# -eq 2 ] || err_usage 'invalid number of arguments'
@@ -4954,14 +4980,15 @@ setvar)
 		EOF
 	}
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
 		[ ":$SCRIPT_NAME" = :preinst ] || [ ":$SCRIPT_NAME" = :postinst ] || err_usage
 		while getopts '' OPT; do case $OPT in
 			?) exit 1;;
 		esac; done
-	fi
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 1 ] || [ $# -eq 2 ] || err_usage 'invalid number of arguments'
@@ -5019,15 +5046,16 @@ remove|emptydir)
 
 	unset -v make_backup
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
 		[ -z "$SCRIPT_NAME" ] && err_usage
 		while getopts n OPT; do case $OPT in
 			n) make_backup=0;;
 			?) exit 1;;
 		esac; done
-	fi
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 1 ] || err_usage 'invalid number of arguments'
@@ -5221,14 +5249,15 @@ mergecp)
 		EOF
 	}
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
 		[ -z "$SCRIPT_NAME" ] && err_usage
 		while getopts '' OPT; do case $OPT in
 			?) exit 1;;
 		esac; done
-	fi
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 2 ] || [ $# -eq 3 ] || err_usage 'invalid number of arguments'
@@ -5257,14 +5286,15 @@ isdirempty)
 		EOF
 	}
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
 		[ -z "$SCRIPT_NAME" ] && err_usage
 		while getopts '' OPT; do case $OPT in
 			?) exit 1;;
 		esac; done
-	fi
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 1 ] || err_usage 'invalid number of arguments'
@@ -5288,14 +5318,15 @@ reset-perms-owners)
 		EOF
 	}
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
 		[ -z "$SCRIPT_NAME" ] && err_usage
 		while getopts '' OPT; do case $OPT in
 			?) exit 1;;
 		esac; done
-	fi
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 1 ] || err_usage 'invalid number of arguments'
@@ -5321,14 +5352,15 @@ run-parts)
 		EOF
 	}
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
 		[ -z "$SCRIPT_NAME" ] && err_usage
 		while getopts '' OPT; do case $OPT in
 			?) exit 1;;
 		esac; done
-	fi
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -eq 1 ] || err_usage 'invalid number of arguments'
@@ -5359,16 +5391,17 @@ findreplace)
 	is_case_insensitive=0
 	replacement_is_var_name=0
 
-	if [ ":$1" = :--help ] || [ ":$1" = :-h ]; then
-		usage; exit 0
-	else
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
 		[ -z "$SCRIPT_NAME" ] && err_usage
 		while getopts iv OPT; do case $OPT in
 			i) is_case_insensitive=1;;
 			v) replacement_is_var_name=1;;
 			?) exit 1;;
 		esac; done
-	fi
+		;;
+	esac
 	shift $((OPTIND - 1))
 	OPTIND=1
 	[ $# -ge 3 ] || err_usage 'invalid number of arguments'
