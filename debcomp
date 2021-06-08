@@ -2925,7 +2925,7 @@ do_install() {
 		check_is_root &&
 		check_os_release &&
 		check_os_arch &&
-		checkutil dpkg dpkg-deb apt-get apt-cache apt-mark md5sum readlink &&
+		checkutil dpkg dpkg-deb apt-get apt-cache apt-mark md5sum readlink fuser &&
 		check_gnu_coreutils du cp chmod chown &&
 		sanitize_scripts_env &&
 		get_env_path_extended &&
@@ -2946,6 +2946,13 @@ do_install() {
 		done
 	} || return 1
 	[ -f /etc/apt/sources.list ] && do_install__sources_list_exist=1
+
+	fuser /var/lib/dpkg/lock > /dev/null 2>&1 && {
+		log_ml 'waiting for termination of processes that use dpkg database ...' 'ru:ожидание завершения процессов, использующих базу dpkg ...'
+		while fuser /var/lib/dpkg/lock > /dev/null 2>&1; do
+			sleep 1
+		done
+	}
 
 	do_install__onexit() { :; }
 	onexit() {
