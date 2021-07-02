@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.5.2 (08/06/2021)
+# Version: 1.5.3 (03/07/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -3189,7 +3189,12 @@ do_install() {
 		cat -- "$0" > "/usr/local/bin/$program_name" &&
 		chmod +x "/usr/local/bin/$program_name" &&
 		mkvardir rollback &&
-		putv program_version > "/var/local/lib/$program_name/rollback/version"
+		putv program_version > "/var/local/lib/$program_name/rollback/program-version" &&
+		putv conf | eawk '{
+			if(!conf_parse_line()) next
+			if(conf_key == "prop/common/osrelease")
+				print conf_value > ARGV[1]
+		}' "/var/local/lib/$program_name/rollback/os-release"
 	} || { onexit; return 1; }
 	putv conf | eawk '
 	function print_conf_values(component_path,    i) {
@@ -3387,7 +3392,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.5.2
+program_version=1.5.3
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -4067,8 +4072,8 @@ rollback)
 	[ -d "/var/local/lib/$program_name/rollback" ] ||
 		err 1 "directory \`/var/local/lib/$program_name/rollback' does not exist, nothing to rollback"
 
-	[ -f "/var/local/lib/$program_name/rollback/version" ] && {
-		last_major_version=$(cat "/var/local/lib/$program_name/rollback/version") || exit 1
+	[ -f "/var/local/lib/$program_name/rollback/program-version" ] && {
+		last_major_version=$(cat "/var/local/lib/$program_name/rollback/program-version") || exit 1
 		last_major_version=${last_major_version%%.*}
 		[ ":$last_major_version" = ":${program_version%%.*}" ] ||
 			err 1 "$(eawk 'BEGIN {
@@ -4076,6 +4081,21 @@ rollback)
 			}' "$program_name" "$last_major_version" "$program_version")"
 	}
 	conf=$(cat "/var/local/lib/$program_name/rollback/config") || exit 1
+
+	[ -f "/var/local/lib/$program_name/rollback/os-release" ] && {
+		current_os_release=$(
+			unset -v ID VERSION_ID
+			for file in /etc/os-release /usr/lib/os-release; do
+				[ -f "$file" ] && { . "$file"; break; }
+			done
+			printf %s "$ID $VERSION_ID"
+		)
+		rollback_os_release=$(cat "/var/local/lib/$program_name/rollback/os-release") || exit 1
+		[ ":$current_os_release" = ":$rollback_os_release" ] ||
+			err 1 "$(eawk 'BEGIN {
+				print ml("To rollback the configuration, the OS version on which it was installed", "ru:Для выполнения отката конфигурации требуется версия ОС, на которую она была установлена") " (\"" ARGV[2] "\")" ml(" is required, instead of the current", "ru:, вместо текущей") " \"" ARGV[1] "\". " ml("If you still want to roll back, delete the", "ru:Если вы всё равно хотите выполнить откат, удалите файл") " \"" ARGV[3] "\" " ml("file and try again. Keep in mind that you do this at your own risk.", "ru:и повторите попытку. Имейте ввиду, что вы делаете это на свой страх и риск.")
+			}' "$current_os_release" "$rollback_os_release" "/var/local/lib/$program_name/rollback/os-release")"
+	}
 
 	{ [ -h "$rollback_backup_path" ] || [ -e "$rollback_backup_path" ]; } && {
 		i=1; while [ -h "$rollback_backup_path.$i" ] || [ -e "$rollback_backup_path.$i" ]; do
