@@ -4005,6 +4005,7 @@ rollback)
 	unset -v PREPDIR
 	no_confirm=0
 	no_lock=0
+	is_rollback_started=0
 
 	case $1 in
 	--help|-h) usage; exit 0;;
@@ -4039,7 +4040,7 @@ rollback)
 	onexit() {
 		set 0
 		rm -rf "/var/local/lib/$program_name/tmp" || set 1
-		[ -d "$rollback_backup_path" ] && {
+		[ $is_rollback_started -eq 1 ] && [ -d "$rollback_backup_path" ] && {
 			[ -d "$rollback_backup_path/files" ] && isdirempty "$rollback_backup_path/files" && {
 				rmdir "$rollback_backup_path/files" || set 1
 			}
@@ -4082,6 +4083,8 @@ rollback)
 		done
 		mv -f "$rollback_backup_path" "$rollback_backup_path.$i" || exit 1
 	}
+
+	is_rollback_started=1
 	mkdir -p "$rollback_backup_path/files" || exit 1
 
 	putv conf | eawk '{
