@@ -1281,20 +1281,23 @@ check_os_arch() {
 	}' "$dpkg_arch" "$1" 2>&1)
 }
 check_os_release() {
-	check_os_release__errors=$(putv conf | eawk '{
-		if(!conf_parse_line()) next
-		if(conf_key == "prop/common/osrelease") {
-			cmd = "unset -v ID VERSION_ID; for file in /etc/os-release /usr/lib/os-release; do [ -f \"$file\" ] && { . \"$file\"; break; }; done; printf \47%s\\n\47 \"$ID $VERSION_ID\""
-			cmd | getline; close(cmd)
-			if($0 != conf_value) {
-				buffer_errors = ARGV[1] + 0
-				message = ml("OS check failed: required", "ru:проверка ОС не удалась: требуется") " \"" conf_value "\" " ml("instead of current", "ru:вместо текущей") " \"" $0 "\""
-				if(buffer_errors) print message
-				else err(message)
-				exit 1
+	check_os_release__errors=$(
+		[ ":$1" = :1 ] && exec 2>&1
+		putv conf | eawk '{
+			if(!conf_parse_line()) next
+			if(conf_key == "prop/common/osrelease") {
+				cmd = "unset -v ID VERSION_ID; for file in /etc/os-release /usr/lib/os-release; do [ -f \"$file\" ] && { . \"$file\"; break; }; done; printf \47%s\\n\47 \"$ID $VERSION_ID\""
+				cmd | getline; close(cmd)
+				if($0 != conf_value) {
+					buffer_errors = ARGV[1] + 0
+					message = ml("OS check failed: required", "ru:проверка ОС не удалась: требуется") " \"" conf_value "\" " ml("instead of current", "ru:вместо текущей") " \"" $0 "\""
+					if(buffer_errors) print message
+					else err(message)
+					exit 1
+				}
 			}
-		}
-	}' "$1" 2>&1)
+		}' "$1"
+	)
 }
 get_env_path_extended() {
 	eval "$(
