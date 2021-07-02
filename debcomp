@@ -2942,6 +2942,7 @@ do_install() {
 		}' | while gets component; do
 			for file in preinst postinst; do
 				! [ -f "$confdir/$component/$file" ] || [ -x "$confdir/$component/$file" ] ||
+				chmod +x "$confdir/$component/$file" ||
 				err 1 "$(eawk 'BEGIN {
 					print ml("file", "ru:файл") " `" ARGV[1] "\47 " ml("does not have execute permission", "ru:не имеет права на выполнение")
 				}' "$confdir/$component/$file")"
