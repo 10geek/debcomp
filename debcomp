@@ -2,7 +2,7 @@
 #
 # debcomp - a configuration deployment system for Debian-based operating systems
 #
-# Version: 1.5.4 (05/07/2021)
+# Version: 1.6.0 (09/07/2021)
 #
 # Copyright (c) 2021 10geek
 #
@@ -2753,7 +2753,18 @@ run_parts() (
 	run_parts "$1"
 	exit $exit_code
 )
+wait_dpkg_lock_release() {
+	fuser /var/lib/dpkg/lock > /dev/null 2>&1 && {
+		log_ml 'waiting for termination of processes that use dpkg database ...' 'ru:ожидание завершения процессов, использующих базу dpkg ...'
+		while :; do
+			sleep 1
+			fuser /var/lib/dpkg/lock > /dev/null 2>&1 || break
+		done
+	}
+	return 0
+}
 apt_get_wrapper() {
+	wait_dpkg_lock_release
 	apt-get -y \
 		--show-progress \
 		--no-install-recommends \
@@ -2764,11 +2775,13 @@ apt_get_wrapper() {
 		"$@"
 }
 do_install__set_pkgs_state() {
+	wait_dpkg_lock_release
 	apt-cache dumpavail | dpkg --update-avail &&
 	dpkg --clear-selections &&
 	putv "$1" | sed 's/$/ install/' | dpkg --set-selections
 }
 do_install__reset_pkgs_state() {
+	wait_dpkg_lock_release
 	dpkg --clear-avail || set 1
 	{
 		do_install__buf=$(dpkg --get-selections) &&
@@ -2964,13 +2977,6 @@ do_install() {
 	} || return 1
 	[ -f /etc/apt/sources.list ] && do_install__sources_list_exist=1
 
-	fuser /var/lib/dpkg/lock > /dev/null 2>&1 && {
-		log_ml 'waiting for termination of processes that use dpkg database ...' 'ru:ожидание завершения процессов, использующих базу dpkg ...'
-		while fuser /var/lib/dpkg/lock > /dev/null 2>&1; do
-			sleep 1
-		done
-	}
-
 	do_install__onexit() { :; }
 	onexit() {
 		set 0
@@ -3017,6 +3023,7 @@ do_install() {
 			}' "$pkg_path")"
 			pkg_abspath=$confdir/$pkg_path
 			if [ -f "$pkg_abspath" ]; then
+				wait_dpkg_lock_release
 				dpkg --force-depends --force-breaks --force-conflicts -i "$pkg_abspath"
 			else
 				{
@@ -3072,6 +3079,7 @@ do_install() {
 				cd .. &&
 				dpkg-deb -b prep tmp/package.deb &&
 				rm -rf prep &&
+				wait_dpkg_lock_release &&
 				dpkg --force-depends --force-breaks --force-conflicts -i tmp/package.deb &&
 				rm -rf tmp
 			fi || exit
@@ -3405,7 +3413,7 @@ unset -v \
 	confdir \
 	dpkg_arch
 program_name=$(basename -- "$0")
-program_version=1.5.4
+program_version=1.6.0
 is_interactive=0
 simulate_install=0
 overlapping_install=0
@@ -3436,6 +3444,7 @@ usage() {
 	  reset-perms-owners
 	  run-parts
 	  findreplace
+	  wait-dpkg-lock-release
 
 	Options:
 	  -v, --version  Output version information and exit
@@ -5505,6 +5514,39 @@ findreplace)
 			close(ARGV[1])
 		}'\'' "$0" "$trailing_newline" || interrupt
 	' {} \; || exit 1
+	;;
+wait-dpkg-lock-release)
+	shift
+
+	usage() {
+		cat <<- EOF
+		Usage: $program_name [<options>] ... wait-dpkg-lock-release
+
+		Waits for termination of processes that use dpkg database. It is
+		recommended to call this subcommand before any operations with the dpkg
+		database performed in scripts.
+
+		Options:
+		  -h, --help  Display this help and exit
+		EOF
+	}
+
+	case $1 in
+	--help|-h) usage; exit 0;;
+	*)
+		[ -z "$SCRIPT_NAME" ] && err_usage
+		while getopts '' OPT; do case $OPT in
+			?) exit 1;;
+		esac; done
+		;;
+	esac
+	shift $((OPTIND - 1))
+	OPTIND=1
+	[ $# -eq 0 ] || err_usage 'invalid number of arguments'
+
+	checkutil fuser || exit 1
+
+	wait_dpkg_lock_release
 	;;
 *) err_usage;;
 esac
